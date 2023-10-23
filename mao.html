@@ -1,0 +1,282 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, user-scalable=no,
+    initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+  <title>✎TVBox配置接口解密</title>
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <style>
+    .container {
+      max-width: 1024px;
+      margin: 0 auto;
+      padding: 12px;
+    }
+
+    .title {
+      text-align: center;
+      margin: 0;
+    }
+
+    .row {
+      margin-top: 22px;
+      width: 100%;
+    }
+
+    .inline-input {
+      display: block;
+    }
+
+    .el-autocomplete-suggestion__wrap {
+      max-height: 470px;
+    }
+
+    .el-input-group__append,
+    .el-input-group__prepend {
+      background: transparent;
+      color: #ffc107;
+      padding: 0;
+    }
+
+    .el-button.is-plain:focus {
+      background-color: transparent;
+      color: #ffc107;
+      border-color: transparent;
+    }
+
+    .el-button.is-plain:hover {
+      background-color: #ffc107;
+      color: initial;
+      border-color: transparent;
+    }
+
+    .el-input-group__append .el-button {
+      margin: 0;
+      border-radius: 0;
+    }
+
+    .el-input-group__append button.btn_oper+.btn_oper {
+      border-left-color: #DCDFE6;
+    }
+    .el-autocomplete-suggestion li{
+      line-height:36px;
+    }
+
+    .el-textarea__inner{
+      background-color: #DCDFE6;
+      font-size: 16px;
+      color: #000;
+    }
+    .btn-row button{
+      position: relative;
+    }
+    .btn-row button a{
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+    }
+  @media screen and (max-width: 640px) {
+
+    .el-autocomplete-suggestion{
+      width:100% !important;
+    }
+    .el-button{
+      padding:12px;
+    }
+  
+  }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div class="container">
+      <h1 class="title">TVBox配置接口解密</h1>
+      <div class="row">
+        <el-autocomplete :popper-append-to-body="false" class="inline-input" v-model="selectedUrl"
+          :fetch-suggestions="querySearch" placeholder="请输入TVBox配置接口，可下拉选择" @select="handleSelect" clearable>
+          <template slot-scope="{ item }">
+            <span class="name">{{ item.name }}:</span>
+            <span class="addr">{{ item.url }}</span>
+          </template>
+          <el-button slot="append" plain class="btn_oper" id="copyJoggle" :data-clipboard-text="selectedUrl"
+            @click="copyContent('#copyJoggle')">复制接口</el-button>
+          <el-button slot="append" class="btn_oper" plain @click="crawl()">一键解密</el-button>
+        </el-autocomplete>
+      </div>
+
+      <div class="row" v-loading="loading">
+        <el-input type="textarea" :autosize="{ minRows: 20, maxRows: 20}" v-model="resultData" readonly>
+        </el-input>
+      </div>
+
+      <div class="row btn-row" style="text-align: center;">
+        <el-button type="primary" id="copyResult" :data-clipboard-text="resultData"
+        @click="copyContent('#copyResult')">复制内容</el-button>
+        <el-button type="success" @click="openLink()">下载Jar</el-button>
+        <!--<el-button type="success" @click="downloadJar()">下载Jar</el-button>-->
+        <el-button type="warning"><a href="http://xn--kwr598birg.eu.org/"></a>返回主页</el-button>
+      </div>
+    </div>
+  </div>
+
+</body>
+
+</html>
+
+
+<script src="https://cdn.bootcdn.net/ajax/libs/axios/1.3.4/axios.min.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"></script>
+
+<script>
+  new Vue({
+    el: '#app',
+    data() {
+      return {
+        selectedUrl: '',
+        resultData: '',
+        loading:false,
+        urls: [{
+          "url": "http://我不是.肥猫.love:63/接口禁止贩卖",
+          "name": "肥猫"
+        }, {
+          "url": "http://饭太硬.ga/tv",
+          "name": "饭总"
+        }]//默认加载
+      };
+    },
+    created(){
+      this.getUrls();
+    },
+    methods: {
+      querySearch(queryString, cb) {
+        var urls = this.urls;
+        var results = queryString ? urls.filter(this.createFilter(queryString)) : urls;
+        // 调用 callback 返回建议列表的数据
+        cb(results);
+      },
+      createFilter(queryString) {
+        return (url) => {
+          return (url.name.toLowerCase().indexOf(queryString.toLowerCase()) === 0);
+        };
+      },
+      handleSelect(item) {
+        this.selectedUrl = item.url;
+      },
+      isObject(value) {
+        return Object.prototype.toString.call(value) === '[object Object]';
+      },
+      getUrls(){
+        axios
+          .get('/api/getJson')
+          .then((response) => {
+            const urls = response.data.urls;
+            this.urls = [...urls,...this.urls];
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+      },
+      crawl() {
+        const url = this.selectedUrl;
+        this.loading = true;
+        axios
+          .get(`/box.php?url=${encodeURIComponent(url)}`)
+          .then((response) => {
+            let resultData = response.data;
+            if (this.isObject(resultData)) {
+              resultData = JSON.stringify(resultData);
+            }
+            this.resultData = resultData;
+            this.loading = false;
+          })
+          .catch((error) => {
+            console.error(error);
+            this.loading = false;
+          });
+      },
+
+      openLink() {
+        // 获取配置接口的值
+        var editBox1 = this.selectedUrl;
+
+        // 如果配置接口为空，则提示
+        if (editBox1 == "") {
+          this.$message({
+            message: '请先输入配置接口',
+            type: 'success'
+          });
+        } else {
+          // 否则，在新窗口中打开JAR下载
+          window.open("/jarxz.php?url=" + editBox1);
+        }
+      },
+
+      downloadJar() {
+        let resultData = this.resultData;
+        resultData = resultData.replace(/\s*:\s*/g, ':'); // 去掉所有冒号前后的空格
+        let url = resultData.match(/"spider":"(.*?)"/) ?. [1];
+        if (url && url.includes(';md5;')) {
+          url = url.split(';md5;')[0];
+        }
+        if(!url){
+          return;
+        }
+
+        if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
+        // 当前设备是移动设备
+          this.downloadFile(url);
+          return;
+        }
+        axios
+          .get(`/api/download?url=${encodeURIComponent(url)}`, {
+            responseType: 'blob',
+          })
+          .then((response) => {
+            const blob = new Blob([response.data], {
+              type: 'application/octet-stream',
+            });
+            const url = window.URL.createObjectURL(blob);
+            this.downloadFile(url);
+            window.URL.revokeObjectURL(url);
+            
+          })
+          .catch((error) => {
+            console.error(error);
+            this.downloadFile(url);
+          });
+      },
+      downloadFile(url) {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'file.jar'; // 设置下载文件名
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link); // 下载完成后移除a标签
+        this.$message({
+            message: '下载中',
+            type: 'success'
+        });
+      },
+      copyContent(id) {
+        let clipboard = new ClipboardJS(id);
+        clipboard.on('success', (e) => {
+          this.$message({
+            message: '复制成功',
+            type: 'success'
+          });
+          e.clearSelection();
+          clipboard.destroy();
+        });
+      }
+    }
+  })
+</script>
+
